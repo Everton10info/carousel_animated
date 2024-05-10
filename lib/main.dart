@@ -11,26 +11,34 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter ',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
-      home: const MyHomePage(title: 'POC Carousel'),
-    );
+        title: 'Flutter ',
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+          useMaterial3: true,
+        ),
+        home: Scaffold(
+          body: Column(
+            children: [
+              Expanded(flex: 2, child: Container()),
+              const CustomerCarousel(title: 'POC Carousel'),
+              Expanded(flex: 2, child: Container())
+            ],
+          ),
+        ));
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
+//  componente
+class CustomerCarousel extends StatefulWidget {
+  const CustomerCarousel({super.key, required this.title});
 
   final String title;
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<CustomerCarousel> createState() => _CustomerCarouselState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class _CustomerCarouselState extends State<CustomerCarousel> {
   List<Widget> images = [
     Image.network(
       "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQTIZccfNPnqalhrWev-Xo7uBhkor57_rKbkw&usqp=CAU",
@@ -41,48 +49,102 @@ class _MyHomePageState extends State<MyHomePage> {
     Image.network(
         "https://uhdwallpapers.org/uploads/converted/20/01/14/the-mandalorian-5k-1920x1080_477555-mm-90.jpg")
   ];
+  int current = 0;
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text(widget.title),
-      ),
-      body: Center(
-        child: CarouselCustomer(
+    return Flexible(
+        child: Stack(
+      children: [
+        CarouselSlider(
+          onChange: (index) {
+            setState(() {
+              current = index;
+            });
+          },
           zoomItem: true,
           items: images,
           controller: PageController(viewportFraction: 0.7),
           infinity: true,
         ),
-      ),
+        // if (widget.showIndexListOnStack! && widget.enableIndexList!)
+        _buildIndexItems(),
+      ],
+    ));
+  }
+
+  List<Widget> mapWidgets() {
+    final List<Widget?> widgets = map<Widget>(images, (index) {
+      return Container(
+        width: 8.0,
+        height: 8.0,
+        margin: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 2.0),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: current == index
+              ? const Color(0XFFDD4084)
+              : const Color(0XFFDD4084).withOpacity(0.5),
+        ),
+      );
+    }).toList();
+
+    final List<Widget> ws = widgets.map((e) => e!).toList();
+
+    return ws;
+  }
+
+  List<T?> map<T>(
+    List<Widget> list,
+    Widget Function(int index) handler,
+  ) {
+    final List<T?> result = [];
+    for (var i = 0; i < list.length; i++) {
+      result.add(handler(i) as T?);
+    }
+    return result;
+  }
+
+  Widget _buildIndexItems() {
+    final row = Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: mapWidgets(),
     );
+
+    return //widget.showIndexListOnStack! ?
+        Positioned(
+      left: 0.0,
+      right: 0.0,
+      bottom: 0.0,
+      child: row,
+    );
+    //: Container(child: row);
   }
 }
 
-class CarouselCustomer extends StatefulWidget {
+class CarouselSlider extends StatefulWidget {
   final List items;
   final PageController controller;
   final bool autoPlay;
   final bool infinity;
   final bool zoomItem;
+  final dynamic Function(int) onChange;
 
-  const CarouselCustomer({
+  const CarouselSlider({
     super.key,
     required this.items,
     required this.controller,
-    required this.infinity,
+    required this.onChange,
+    this.infinity = false,
     this.autoPlay = false,
     this.zoomItem = false,
   });
 
   @override
-  CarouselCustomerState createState() => CarouselCustomerState();
+  CarouselSliderState createState() => CarouselSliderState();
 }
 
-class CarouselCustomerState extends State<CarouselCustomer> {
-  int _currentPage = 0;
+class CarouselSliderState extends State<CarouselSlider> {
+  final int _currentPage = 0;
   late Timer _timer;
 
   @override
@@ -107,28 +169,19 @@ class CarouselCustomerState extends State<CarouselCustomer> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Carousel Example'),
-      ),
-      body: PageView.builder(
-        itemCount: widget.infinity ? null : widget.items.length,
-        controller: widget.controller,
-        onPageChanged: (int page) {
-          setState(() {
-            _currentPage = page;
-          });
-        },
-        itemBuilder: (context, index) {
-          final int itemIndex = index % widget.items.length;
-          return Transform.scale(
-            scale: (widget.zoomItem && index == _currentPage) ? 1 : 0.9,
-            child: ItemCarousel(
-              child: widget.items[itemIndex],
-            ),
-          );
-        },
-      ),
+    return PageView.builder(
+      itemCount: widget.infinity ? null : widget.items.length,
+      controller: widget.controller,
+      onPageChanged: widget.onChange,
+      itemBuilder: (context, index) {
+        final int itemIndex = index % widget.items.length;
+        return Transform.scale(
+          scale: (widget.zoomItem && index == _currentPage) ? 1 : 0.9,
+          child: ItemCarousel(
+            child: widget.items[itemIndex],
+          ),
+        );
+      },
     );
   }
 }
