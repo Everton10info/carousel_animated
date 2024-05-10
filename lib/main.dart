@@ -8,7 +8,6 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -32,6 +31,17 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  List<Widget> images = [
+    Image.network(
+      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQTIZccfNPnqalhrWev-Xo7uBhkor57_rKbkw&usqp=CAU",
+    ),
+    Image.network("https://wallpaperaccess.com/full/2637581.jpg"),
+    Image.network(
+        "https://images.wallpapersden.com/image/download/purple-sunrise-4k-vaporwave_bGplZmiUmZqaraWkpJRmbmdlrWZlbWU.jpg"),
+    Image.network(
+        "https://uhdwallpapers.org/uploads/converted/20/01/14/the-mandalorian-5k-1920x1080_477555-mm-90.jpg")
+  ];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -39,32 +49,48 @@ class _MyHomePageState extends State<MyHomePage> {
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: Text(widget.title),
       ),
-      body: const Center(
-        child: CarouselPage(),
+      body: Center(
+        child: CarouselCustomer(
+          zoomItem: true,
+          items: images,
+          controller: PageController(viewportFraction: 0.7),
+          infinity: true,
+        ),
       ),
     );
   }
 }
 
-class CarouselPage extends StatefulWidget {
-  const CarouselPage({super.key});
+class CarouselCustomer extends StatefulWidget {
+  final List items;
+  final PageController controller;
+  final bool autoPlay;
+  final bool infinity;
+  final bool zoomItem;
+
+  const CarouselCustomer({
+    super.key,
+    required this.items,
+    required this.controller,
+    required this.infinity,
+    this.autoPlay = false,
+    this.zoomItem = false,
+  });
 
   @override
-  CarouselPageState createState() => CarouselPageState();
+  CarouselCustomerState createState() => CarouselCustomerState();
 }
 
-class CarouselPageState extends State<CarouselPage> {
-  final PageController _pageController =
-      PageController(initialPage: 1000, viewportFraction: 0.7);
+class CarouselCustomerState extends State<CarouselCustomer> {
   int _currentPage = 0;
   late Timer _timer;
-  bool _isZoomed = false;
 
   @override
   void initState() {
     super.initState();
+    if (!widget.autoPlay) return;
     _timer = Timer.periodic(const Duration(milliseconds: 2500), (timer) {
-      _pageController.animateToPage(
+      widget.controller.animateToPage(
         _currentPage + 1,
         duration: const Duration(milliseconds: 500),
         curve: Curves.ease,
@@ -74,17 +100,10 @@ class CarouselPageState extends State<CarouselPage> {
 
   @override
   void dispose() {
-    _pageController.dispose();
+    widget.controller.dispose();
     _timer.cancel();
     super.dispose();
   }
-
-  List<String> images = [
-    "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQTIZccfNPnqalhrWev-Xo7uBhkor57_rKbkw&usqp=CAU",
-    "https://wallpaperaccess.com/full/2637581.jpg",
-    "https://images.wallpapersden.com/image/download/purple-sunrise-4k-vaporwave_bGplZmiUmZqaraWkpJRmbmdlrWZlbWU.jpg",
-    "https://uhdwallpapers.org/uploads/converted/20/01/14/the-mandalorian-5k-1920x1080_477555-mm-90.jpg"
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -93,32 +112,20 @@ class CarouselPageState extends State<CarouselPage> {
         title: const Text('Carousel Example'),
       ),
       body: PageView.builder(
-        controller: _pageController,
+        itemCount: widget.infinity ? null : widget.items.length,
+        controller: widget.controller,
         onPageChanged: (int page) {
           setState(() {
             _currentPage = page;
-            _isZoomed = false;
           });
         },
         itemBuilder: (context, index) {
-          final int itemIndex = index % images.length;
-          return GestureDetector(
-            onTap: () {
-              setState(() {
-                _isZoomed = true;
-
-                Future.delayed(const Duration(seconds: 2), () {
-                  setState(() {
-                    _isZoomed = false;
-                  });
-                });
-              });
-            },
-            child: Transform.scale(
-                scale: (_isZoomed && index == _currentPage) ? 1 : 0.9,
-                child: CarouselItem(
-                  image: images[itemIndex],
-                )),
+          final int itemIndex = index % widget.items.length;
+          return Transform.scale(
+            scale: (widget.zoomItem && index == _currentPage) ? 1 : 0.9,
+            child: ItemCarousel(
+              child: widget.items[itemIndex],
+            ),
           );
         },
       ),
@@ -126,22 +133,17 @@ class CarouselPageState extends State<CarouselPage> {
   }
 }
 
-class CarouselItem extends StatelessWidget {
-  final String image;
+class ItemCarousel extends StatelessWidget {
+  final Widget? child;
 
-  const CarouselItem({super.key, required this.image});
+  const ItemCarousel({super.key, this.child});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(18.0),
-        child: Image.network(
-          height: 70,
-          image,
-        ),
-      ),
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(left: 15 * 1.5, right: 15 * 1.5),
+      child: child,
     );
   }
 }
